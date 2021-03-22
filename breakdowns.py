@@ -11,14 +11,17 @@ class CloseOutStatement:
     - Numerical values for each item resides in column 9 (Col J) of the corresponding row
     - Sub-total labels reside in column 2 (Col C)
     - Only 3 sections in closeout statement in following order: Settlement info, Expense, Medical/Lien
-
+    - Net to client is a row (and is unique)
+    - Total expenses is a row (and is unique
+    - Total medical is a row (and is unique)
+    - "Amount of Settlement" is a row (and is unique
+    - Medical items have one extra row above ("Lien" or "Medical" header) and three extra rows below ("Total Medical", "Total Medical Reductions", and "Subtotal Medical")
     """
     def __init__(self, file_path: str):
         self.file_path = file_path
         self.closeout_df = self.import_closeout_as_df(file_path)
         self.preprocess_closeout_df()
 
-    
     def import_closeout_as_df(self, file_path: str):
         """
         Import closeout statement excel file as a pandas DataFrame
@@ -86,6 +89,7 @@ class CloseOutStatement:
         item = item.lower()
         item = item.replace(":", '')
         item = item.replace("-", '')
+        item = item.strip()
         return item
 
 
