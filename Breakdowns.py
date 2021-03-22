@@ -1,4 +1,5 @@
 import pandas as pd
+import regex
 
 class CloseOutStatement:
     """
@@ -87,3 +88,19 @@ class CloseOutStatement:
         item = item.replace("-", '')
         return item
 
+
+    def _fuzzy_match_series(self, series: pd.Series, match: str, errors=3):
+        """
+        Find elements in series that are similar to pattern within some number of errors. Output is a mask of shape series.shape
+        """
+        series = series.astype(str)
+        mask = series.apply(lambda item: self._is_fuzzy_match(item, match=match, errors=errors))
+        return mask
+        
+    def _is_fuzzy_match(self, item: str, match: str, errors=3):
+        """
+        Returns whether item matches pattern within some number of errors
+        """ 
+        regex_pattern = f"({match}){{e<={errors}}}"
+        matches = regex.findall(regex_pattern, item)
+        return len(matches) > 0
