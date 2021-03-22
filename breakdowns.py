@@ -92,6 +92,79 @@ class CloseOutStatement:
         item = item.strip()
         return item
 
+    def parse_closeout_df(self):
+        """
+        Parse information in closeout_df and store key information as attributes
+        """
+        self.client_name = self.get_client_name()
+        self.settlement_amount = self.get_settlement_amount()
+        self.net_to_client_amount = self.get_net_to_client_amount()
+        self.total_expenses_amount = self.get_total_expenses()
+        self.total_medical_amount = self.get_total_medical()
+        self.medical_items = self.get_medical_items()
+
+
+    def split_closeout_df(self):
+        """
+        Split the closeout df into 3 dfs based on the items items each section contains: settlement info, expenses, and medical
+        """
+        subtotal_mask = self._fuzzy_match_series(self.closeout_df['item'], 'subtotal', errors=2)
+        subtotal_idxs = self.closeout_df[subtotal_mask].index
+        
+        settlement_df = self.closeout_df.iloc[:subtotal_idxs[0] + 1].reset_index(drop=True)
+        expenses_df = self.closeout_df.iloc[subtotal_idxs[0] + 1: subtotal_idxs[1] + 1].reset_index(drop=True)
+        medical_df = self.closeout_df.iloc[subtotal_idxs[1] + 1:subtotal_idxs[2] + 1].reset_index(drop=True)
+
+        return settlement_df, expenses_df, medical_df
+
+    def get_medical_items(self):
+        """
+        Get itemized medical expenses from closeout_df
+        """
+        _, _, medical_df= self.split_closeout_df()
+        medical_items = medical_df.iloc[1:-3].reset_index(drop=True)
+        return medical_items
+    
+    def get_settlement_amount(self):
+        """
+        Get settlement amount from closeout_df
+        """
+        settlement_amount_mask = self._fuzzy_match_series(self.closeout_df['item'], 'amount of settlement', errors=3)
+        settlement_amount = self.closeout_df[settlement_amount_mask]['amount'].values[0]
+        return settlement_amount
+
+    def get_net_to_client_amount(self):
+        """
+        Get net amount to client from closeout_df
+        """
+        net_to_client_mask = self._fuzzy_match_series(self.closeout_df['item'], 'net to client', errors=3)
+        net_to_client_amount = self.closeout_df[net_to_client_mask]['amount'].values[0]
+        return net_to_client_amount
+
+    def get_total_expenses(self):
+        """
+        Get total amount of all expenses in closeout_df
+        """
+        total_expenses_mask = self._fuzzy_match_series(self.closeout_df['item'], 'total expenses', errors=3)
+        total_expenses = self.closeout_df[total_expenses_mask]['amount'].values[0]
+        return total_expenses
+
+    def get_total_medical(self):
+        """
+        Get total medical medical expenses from closeout_df
+        """
+        total_medical_mask = self._fuzzy_match_series(self.closeout_df['item'], 'total medical', errors=3)
+        total_medical = self.closeout_df[total_medical_mask]['amount'].values[0]
+        return total_medical
+
+    def get_client_name(self):
+        """
+        Get client name from closeout_df
+        """
+        client_name_mask = self._fuzzy_match_series(self.closeout_df['item'], 'name', errors=1)
+        name = self.closeout_df[client_name_mask]['item'].values[0]
+        name = name.replace('name', '').strip()
+        return name
 
     def _fuzzy_match_series(self, series: pd.Series, match: str, errors=3):
         """
