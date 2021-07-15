@@ -557,6 +557,40 @@ class BreakdownWriter:
         Write workbook to filepath
         """
         self.workbook.save(output_file)
+        # self._set_password(output_file, 'cindyflorist')
+
+    def _set_password(self, excel_file_path, pw):
+
+        import subprocess
+
+        excel_file_path = Path(excel_file_path)
+
+        vbs_script = \
+        f"""' Save with password required upon opening
+
+        Set excel_object = CreateObject("Excel.Application")
+        Set workbook = excel_object.Workbooks.Open("{excel_file_path}")
+
+        excel_object.DisplayAlerts = False
+        excel_object.Visible = False
+
+        workbook.SaveAs "{excel_file_path}",, "{pw}"
+
+        excel_object.Application.Quit
+        """
+
+        # write
+        vbs_script_path = excel_file_path.parent.joinpath("set_pw.vbs")
+        with open(vbs_script_path, "w") as file:
+            file.write(vbs_script)
+
+        #execute
+        subprocess.call(['cscript.exe', str(vbs_script_path)])
+
+        # remove
+        vbs_script_path.unlink()
+
+        return None
 
 
 if __name__ == "__main__":
@@ -568,6 +602,3 @@ if __name__ == "__main__":
         output_file = parent_path / f'Breakdown {client_name}.xlsx'
         writer = BreakdownWriter(statement)
         writer.save_workbook(output_file)
-    
-
-    
