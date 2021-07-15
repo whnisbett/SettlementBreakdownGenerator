@@ -7,7 +7,7 @@ from openpyxl import Workbook
 from openpyxl.worksheet.table import Table, TableStyleInfo
 from openpyxl.styles import PatternFill, Font, Alignment
 from openpyxl.styles.numbers import BUILTIN_FORMATS
-from tkinter import Tk
+from tkinter import Tk, messagebox
 from tkinter.filedialog import askopenfilenames
 
 class CloseOutStatement:
@@ -24,7 +24,6 @@ class CloseOutStatement:
     - Total expenses is a row (and is unique
     - Total medical is a row (and is unique)
     - "Amount of Settlement" is a row (and is unique
-    - Medical items have one extra row above ("Lien" or "Medical" header) and three extra rows below ("Total Medical", "Total Medical Reductions", and "Subtotal Medical")
     """
     def __init__(self, file_path: str):
         self.file_path = file_path
@@ -131,7 +130,7 @@ class CloseOutStatement:
         Get itemized medical expenses from closeout_df
         """
         _, _, medical_df= self.split_closeout_df()
-        medical_items = medical_df.iloc[1:-3].reset_index(drop=True)
+        medical_items = medical_df.iloc[0:-3].dropna().reset_index(drop=True)
         return medical_items
     
     def get_settlement_amount(self):
@@ -196,8 +195,9 @@ class BreakdownWriter:
     """
     Class for transcribing CloseOutStatement objects as breakdown sheets
     """
-    def __init__(self, closeout_statement: CloseOutStatement):
+    def __init__(self, closeout_statement: CloseOutStatement, is_lit=False):
         self.closeout_statement = closeout_statement
+        self.is_lit = is_lit
         self.title_final_row = 8
         self.med_table_final_row = self.get_med_table_final_row()
         self.med_table_rows = list(range(self.title_final_row + 1, self.title_final_row + 1 + len(self.closeout_statement.get_medical_items()) + 1))
@@ -301,10 +301,12 @@ class BreakdownWriter:
         """
         Insert values for each of the financials reported in column A
         """
+
+        attorney_fees_factor = 0.4 if self.is_lit else 1/3
         amount_values = [self.closeout_statement.get_settlement_amount(),
                         0,
                         '=A10/3',
-                        f'=(A10/3)-B{self.bottom_section_first_row + 5}',
+                        f'=(A10*{attorney_fees_factor})-B{self.bottom_section_first_row + 5}',
                         f'=A16*B{self.rates_top_row + 1}',
                         f'=A14-D{self.med_table_final_row}',
                         abs(self.closeout_statement.get_total_expenses()),
@@ -596,9 +598,14 @@ class BreakdownWriter:
 if __name__ == "__main__":
     Tk().withdraw()
     filenames = askopenfilenames()
-    statements_and_parents = [(CloseOutStatement(path), Path(path).absolute().parent) for path in filenames]
-    for statement, parent_path in statements_and_parents:
+    statements_and_parents = [(CloseOutStatement(path), Path(path).absolute()) for path in filenames]
+    for statement, path in statements_and_parents:
+        parent_path = path.parent
         client_name = statement.get_client_name().upper()
         output_file = parent_path / f'Breakdown {client_name}.xlsx'
-        writer = BreakdownWriter(statement)
+        import pdb
+        pdb.set_trace()
+        response = messagebox.askquestion("Litigation?", f"File: {path.stem} \n\n Has this gone to litigation?", icon='question')
+        is_lit = True if response == 'yes' else False
+        writer = BreakdownWriter(statement, is_lit=is_lit)
         writer.save_workbook(output_file)
