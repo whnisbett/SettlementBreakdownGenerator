@@ -303,9 +303,10 @@ class BreakdownWriter:
         """
 
         attorney_fees_factor = 0.4 if self.is_lit else 1/3
+        third_settlement_formula = '=(A10-A16)/2' if self.is_lit else '=A10/3'
         amount_values = [self.closeout_statement.get_settlement_amount(),
                         0,
-                        '=A10/3',
+                        third_settlement_formula,
                         f'=(A10*{attorney_fees_factor})-B{self.bottom_section_first_row + 5}',
                         f'=A16*B{self.rates_top_row + 1}',
                         f'=A14-D{self.med_table_final_row}',
@@ -603,8 +604,6 @@ if __name__ == "__main__":
         parent_path = path.parent
         client_name = statement.get_client_name().upper()
         output_file = parent_path / f'Breakdown {client_name}.xlsx'
-        import pdb
-        pdb.set_trace()
         response = messagebox.askquestion("Litigation?", f"File: {path.stem} \n\n Has this gone to litigation?", icon='question')
         is_lit = True if response == 'yes' else False
         writer = BreakdownWriter(statement, is_lit=is_lit)
