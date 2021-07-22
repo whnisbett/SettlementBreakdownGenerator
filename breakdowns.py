@@ -307,7 +307,7 @@ class BreakdownWriter:
         amount_values = [self.closeout_statement.get_settlement_amount(),
                         0,
                         third_settlement_formula,
-                        f'=(A10*{attorney_fees_factor})-B{self.bottom_section_first_row + 5}',
+                        f'=(A10*{attorney_fees_factor})-B{self.bottom_section_first_row + 3}',
                         f'=A16*B{self.rates_top_row + 1}',
                         f'=A14-D{self.med_table_final_row}',
                         abs(self.closeout_statement.get_total_expenses()),
